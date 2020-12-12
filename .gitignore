@@ -1,0 +1,5 @@
+/.idea/
+/target/
+/PixivApiJava.iml
+/src/main/java/de/yochyo/pixiv_api/Main.kt
+/src/main/java/de/yochyo/pixiv_api/test.json
