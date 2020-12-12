@@ -5,9 +5,11 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import de.yochyo.pixiv_api.request_enums.HttpMethod
-import de.yochyo.pixiv_api.types.*
-import de.yochyo.pixiv_api.types.pixiv_user_detail.PixivUserDetail
+import de.yochyo.pixiv_api.request_types.HttpMethod
+import de.yochyo.pixiv_api.request_types.Mode
+import de.yochyo.pixiv_api.request_types.PixivParams
+import de.yochyo.pixiv_api.response_types.*
+import de.yochyo.pixiv_api.response_types.pixiv_user_detail.PixivUserDetail
 import kotlinx.coroutines.*
 import java.net.HttpURLConnection
 import java.net.URL
@@ -410,6 +412,8 @@ class PixivApi(var username: String?, var password: String?) {
         }
         con
     }
+
+    suspend fun getInputStreamForImage(imageUrl: String) = getHttpUrlConnection(HttpMethod.GET, imageUrl).inputStream
 
     @Suppress("BlockingMethodInNonBlockingContext")
     private suspend inline fun <reified T> getResponse(
