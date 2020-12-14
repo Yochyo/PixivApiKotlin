@@ -1,3 +1,4 @@
+/*
 import de.yochyo.pixiv_api.api
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
@@ -162,3 +163,4 @@ class PixivApiTest {
         runBlocking { api.getRecommendedNovels() }
     }
 }
+ */
