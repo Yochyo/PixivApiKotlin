@@ -22,7 +22,13 @@ import java.util.*
 import kotlin.collections.HashMap
 
 @Suppress("NAME_SHADOWING")
-class PixivApi(var username: String?, var password: String?) {
+class PixivApi {
+    private var username: String? = null
+    private var password: String? = null
+    private var refreshToken: String?
+        get() = de.yochyo.pixiv_api.refreshToken
+        set(value) {}
+
     private val mapper = JsonMapper.builder().apply {
         addModule(KotlinModule())
         propertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
@@ -36,11 +42,6 @@ class PixivApi(var username: String?, var password: String?) {
         put("User-Agent", "PixivIOSApp/5.8.7")
     }
 
-    var auth: PixivClient? = null
-
-    // val refreshToken get() = auth?.refreshToken
-    val refreshToken get() = de.yochyo.pixiv_api.refreshToken
-
     companion object {
         const val BASE_URL = "https://app-api.pixiv.net"
         const val CLIENT_ID = "MOBrBDS8blbauoSck0ZfDbtuzpyT"
@@ -49,9 +50,23 @@ class PixivApi(var username: String?, var password: String?) {
         const val FILTER = "for_ios"
     }
 
-    suspend fun login(username: String, password: String): PixivClient = withContext(Dispatchers.IO) {
-        this@PixivApi.username = username
-        this@PixivApi.password = password
+    suspend fun login(username: String, password: String): PixivClient {
+        updateCredentials(username, password, null)
+        return login()
+    }
+
+    suspend fun login(refreshToken: String): PixivClient {
+        updateCredentials(null, null, refreshToken)
+        return login()
+    }
+
+    private fun updateCredentials(username: String?, password: String?, refreshToken: String?) {
+        this.username = username
+        this.password = password
+        this.refreshToken = refreshToken
+    }
+
+    suspend fun login(): PixivClient = withContext(Dispatchers.IO) {
         fun getClientHash(timeString: String): String {
             val h = MessageDigest.getInstance("MD5").digest((timeString + HASH_SECRET).toByteArray(Charsets.UTF_8))
             val hexString = StringBuilder()
@@ -73,30 +88,30 @@ class PixivApi(var username: String?, var password: String?) {
         }
 
         val refreshToken = this@PixivApi.refreshToken
+        val username = this@PixivApi.username
+        val password = this@PixivApi.password
         val data = map {
             put("client_id", CLIENT_ID)
             put("client_secret", CLIENT_SECRET)
             put("get_secure_url", "1")
-            if (refreshToken == null) {
+            if (refreshToken == null && username != null && password != null) {
                 put("grant_type", "password")
                 put("username", username)
                 put("password", password)
-            } else {
+            } else if (refreshToken != null) {
                 put("grant_type", "refresh_token")
                 put("refresh_token", refreshToken)
-            }
+            } else throw Exception("Not logged in")
         }
 
 
         val auth = getResponse<PixivClient>(HttpMethod.POST, "https://oauth.secure.pixiv.net/auth/token", data = data, headers = headers)
-        setAccessToken(auth.accessToken)
 
-        this@PixivApi.auth = auth
-        setAccessToken(auth.accessToken)
+        refreshAccessToken(auth.accessToken)
         auth
     }
 
-    private fun setAccessToken(accessToken: String) {
+    private fun refreshAccessToken(accessToken: String) {
         additionalHeaders["Authorization"] = "Bearer $accessToken"
     }
 
