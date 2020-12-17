@@ -50,6 +50,12 @@ class PixivApi {
         const val FILTER = "for_ios"
     }
 
+    private fun updateCredentials(username: String?, password: String?, refreshToken: String?) {
+        this.username = username
+        this.password = password
+        this.refreshToken = refreshToken
+    }
+
     suspend fun login(username: String, password: String): PixivClient {
         updateCredentials(username, password, null)
         return login()
@@ -58,12 +64,6 @@ class PixivApi {
     suspend fun login(refreshToken: String): PixivClient {
         updateCredentials(null, null, refreshToken)
         return login()
-    }
-
-    private fun updateCredentials(username: String?, password: String?, refreshToken: String?) {
-        this.username = username
-        this.password = password
-        this.refreshToken = refreshToken
     }
 
     suspend fun login(): PixivClient = withContext(Dispatchers.IO) {
@@ -109,6 +109,10 @@ class PixivApi {
 
         refreshAccessToken(auth.accessToken)
         auth
+    }
+
+    fun setLanguage(lan: String) {
+        additionalHeaders["Accept-Language"] = lan
     }
 
     private fun refreshAccessToken(accessToken: String) {
@@ -184,7 +188,7 @@ class PixivApi {
     /**
      * Gets a user list.
      */
-    suspend fun userList(id: Int, params: PixivParams = PixivParams()) {
+    suspend fun getUserList(id: Int, params: PixivParams = PixivParams()) {
         TODO()
         val params = params.copy(userId = id, filter = FILTER)
         getResponse<Unit>(HttpMethod.GET, "$BASE_URL/v1/user/list", params = params.toMapByJackson())
@@ -293,7 +297,7 @@ class PixivApi {
      * Returns an array of auto-completed words from the input.
      */
     suspend fun searchAutoCompletion(word: String): PixivAutoComplete {
-        return getResponse(HttpMethod.GET, "$BASE_URL/v1/search/autocomplete", params = map { put("word", word) })
+        return getResponse(HttpMethod.GET, "$BASE_URL/v2/search/autocomplete", params = map { put("word", word) })
     }
 
     /**
