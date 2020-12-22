@@ -25,9 +25,7 @@ import kotlin.collections.HashMap
 class PixivApi {
     private var username: String? = null
     private var password: String? = null
-    private var refreshToken: String?
-        get() = de.yochyo.pixiv_api.refreshToken
-        set(value) {}
+    private var refreshToken: String? = null
 
     private val mapper = JsonMapper.builder().apply {
         addModule(KotlinModule())
@@ -35,11 +33,12 @@ class PixivApi {
         configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     }.build()
 
-    private var additionalHeaders = map {
+    var additionalHeaders = map {
         put("App-OS", "ios")
         put("App-OS-Version", "9.3.3")
         put("App-Version", "6.0.9")
         put("User-Agent", "PixivIOSApp/5.8.7")
+        put("Referer", "https://www.pixiv.net")
     }
 
     companion object {
@@ -406,7 +405,7 @@ class PixivApi {
             }
             return builder.toString()
         }
-        println(buildUrl())
+
         val con = URL(buildUrl()).openConnection() as HttpURLConnection
         con.requestMethod = method.toString()
         additionalHeaders.forEach { con.addRequestProperty(it.key, it.value) }
@@ -433,14 +432,23 @@ class PixivApi {
     }
 
     suspend fun getInputStreamForImage(imageUrl: String) = getHttpUrlConnection(HttpMethod.GET, imageUrl).inputStream
+    suspend fun <E> getResponse(url: String, clazz: Class<E>): E = getResponse(HttpMethod.GET, url, clazz = clazz)
+
 
     @Suppress("BlockingMethodInNonBlockingContext")
     private suspend inline fun <reified T> getResponse(
         method: HttpMethod, url: String, headers: MutableMap<String, String> = HashMap(),
         params: MutableMap<String, String> = HashMap(),
         data: MutableMap<String, String>? = null
+    ): T = getResponse(method, url, headers, params, data, T::class.java)
+
+    @Suppress("BlockingMethodInNonBlockingContext")
+    private suspend inline fun <T> getResponse(
+        method: HttpMethod, url: String, headers: MutableMap<String, String> = HashMap(),
+        params: MutableMap<String, String> = HashMap(),
+        data: MutableMap<String, String>? = null, clazz: Class<T>
     ): T = withContext(Dispatchers.IO) {
-        mapper.readValue(getHttpUrlConnection(method, url, headers, params, data).readAsString().apply { println(this) }, T::class.java)
+        mapper.readValue(getHttpUrlConnection(method, url, headers, params, data).readAsString(), clazz)
     }
 
     private fun map(f: MutableMap<String, String>.() -> Unit): MutableMap<String, String> {

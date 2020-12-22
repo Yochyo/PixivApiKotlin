@@ -10,5 +10,5 @@ fun Date.toPixivDate(): String {
 }
 
 fun HttpURLConnection.readAsString(): String {
-    return this.inputStream.use { String(it.readAllBytes()) }
+    return this.inputStream.use { String(it.readBytes()) }
 }
